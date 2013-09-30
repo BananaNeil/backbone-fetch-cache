@@ -24,7 +24,8 @@
       sync: Backbone.Model.prototype.sync
     },
     collection: {
-      fetch: Backbone.Collection.prototype.fetch
+      fetch: Backbone.Collection.prototype.fetch,
+      _prepareModel: Backbone.Collection.prototype._prepareModel
     }
   },
   supportLocalStorage = (function() {
@@ -70,6 +71,12 @@
   }
 
   // Shared methods
+  function defineModelCache(key) {
+    var cache = Backbone.fetchCache._cache;
+    cache.allModels = cache.allModels || {};
+    cache.allModels[key] = cache.allModels[key] || {};
+  }
+
   function getCacheKey(instance, opts) {
     var url;
 
@@ -230,6 +237,24 @@
     return superMethods.model.sync.apply(this, arguments);
   };
 
+  Backbone.Collection.prototype._prepareModel = function(attrs, options) {
+    var all, storedModel,
+        key = this.cacheKey,
+        model = superMethods.collection._prepareModel.apply(this, arguments);
+
+    if (model && key) {
+      Backbone.fetchCache.defineModelCache(key);
+      all = Backbone.fetchCache._cache['allModels'][key];
+      storedModel = all[model.get('id')];
+      if (storedModel) {
+        model = superMethods.collection._prepareModel.apply(this, [storedModel, options]);
+      }
+      all[model.get('id')] = model;
+    }
+
+    return model;
+  }
+
   Backbone.Collection.prototype.fetch = function(opts) {
     opts = _.defaults(opts || {}, { parse: true });
     var key = Backbone.fetchCache.getCacheKey(this, opts),
@@ -301,6 +326,7 @@
   Backbone.fetchCache.clearItem = clearItem;
   Backbone.fetchCache.setLocalStorage = setLocalStorage;
   Backbone.fetchCache.getLocalStorage = getLocalStorage;
+  Backbone.fetchCache.defineModelCache = defineModelCache;
 
   return Backbone;
 }));
