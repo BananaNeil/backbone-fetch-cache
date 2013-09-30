@@ -19,9 +19,13 @@
 
   // Setup
   var superMethods = {
-    modelFetch: Backbone.Model.prototype.fetch,
-    modelSync: Backbone.Model.prototype.sync,
-    collectionFetch: Backbone.Collection.prototype.fetch
+    model: {
+      fetch: Backbone.Model.prototype.fetch,
+      sync: Backbone.Model.prototype.sync
+    },
+    collection: {
+      fetch: Backbone.Collection.prototype.fetch
+    }
   },
   supportLocalStorage = (function() {
     var supported = typeof window.localStorage !== 'undefined';
@@ -188,7 +192,7 @@
     }
 
     // Delegate to the actual fetch method and store the attributes in the cache
-    superMethods.modelFetch.apply(this, arguments)
+    superMethods.model.fetch.apply(this, arguments)
       // resolve the returned promise when the AJAX call completes
       .done( _.bind(deferred.resolve, this, this) )
       // Set the new data in the cache
@@ -205,7 +209,7 @@
   Backbone.Model.prototype.sync = function(method, model, options) {
     // Only empty the cache if we're doing a create, update, patch or delete.
     if (method === 'read') {
-      return superMethods.modelSync.apply(this, arguments);
+      return superMethods.model.sync.apply(this, arguments);
     }
 
     var collection = model.collection,
@@ -223,7 +227,7 @@
     // Empty cache for all found keys
     for (i = 0, len = keys.length; i < len; i++) { clearItem(keys[i]); }
 
-    return superMethods.modelSync.apply(this, arguments);
+    return superMethods.model.sync.apply(this, arguments);
   };
 
   Backbone.Collection.prototype.fetch = function(opts) {
@@ -274,7 +278,7 @@
     }
 
     // Delegate to the actual fetch method and store the attributes in the cache
-    superMethods.collectionFetch.apply(this, arguments)
+    superMethods.collection.fetch.apply(this, arguments)
       // resolve the returned promise when the AJAX call completes
       .done( _.bind(deferred.resolve, this, this) )
       // Set the new data in the cache
